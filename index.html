@@ -522,7 +522,7 @@ function timeRange(ev) {
 }
 function extractTime(ev) {
   var desc = ev.description || "";
-  var match = desc.match(/(?:【開始時間】|開始\s*)(\d{1,2})[:\uff1a](\d{2})/);
+  var match = desc.match(/(?:【時間】|【開始時間】|開始\s*)(\d{1,2})[:\uff1a](\d{2})/);
   if (match) return parseInt(match[1])*60+parseInt(match[2]);
   if (ev.start.dateTime) { var d = new Date(ev.start.dateTime); return d.getHours()*60+d.getMinutes(); }
   return 9999;
@@ -690,10 +690,13 @@ function renderEvents(items) {
     var desc = ev.description || "";
     /* 終日イベントで時間がない場合、descriptionから開始時間を抽出 */
     if (!time) {
-      var timeMatch = desc.match(/(?:【開始時間】|開始\s*)(\d{1,2})[:\uff1a](\d{2})/);
+      var timeMatch = desc.match(/(?:【時間】|【開始時間】|開始\s*)(\d{1,2})[:\uff1a](\d{2})/);
       if (timeMatch) time = timeMatch[1] + ':' + timeMatch[2] + '〜';
     }
-    var loc = ev.location || "";
+    /* 場所: descriptionから取得 */
+    var loc = "";
+    var locMatch = desc.match(/【場所】\s*([^\n]+)/);
+    if (locMatch) loc = locMatch[1].trim();
     var metaParts = [];
     if (time) metaParts.push(time);
     if (loc) metaParts.push(escHtml(loc));
@@ -705,6 +708,8 @@ function renderEvents(items) {
     var cleanDesc = desc
       .replace(/【調整さん】.*\n?/g,"")
       .replace(/【対象】[^\n]*/g,"")
+      .replace(/【場所】[^\n]*/g,"")
+      .replace(/【時間】[^\n]*/g,"")
       .replace(/【開始時間】[^\n]*/g,"")
       .replace(/開始\s*\d{1,2}[:\uff1a]\d{2}[^\n]*/g,"")
       .replace(/【参加予定】[^\n]*/g,"")
