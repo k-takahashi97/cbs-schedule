@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CBS年間スケジュール</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --surface: #FFFFFF;
+      --text-primary: #1A1A1A;
+      --text-secondary: #7A7A7A;
+      --text-muted: #B5B5B5;
+      --border: #F0EEEC;
+      --accent: #2D5BE3;
+      --accent-light: #EBF0FD;
+      --weekend: #D94F4F;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--surface);
+      box-shadow: 0 0 40px rgba(0,0,0,0.04);
+    }
+    .header {
+      padding: 40px 24px 24px;
+      background: linear-gradient(135deg, #1A1A1A 0%, #2A2A3A 100%);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -40px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: rgba(45, 91, 227, 0.15);
+      filter: blur(40px);
+    }
+    .header-title {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+    .header-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 8px;
+      position: relative;
+      z-index: 1;
+    }
+    .header-sub .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+    }
+    .dot-live { background: #4ADE80; box-shadow: 0 0 8px rgba(74,222,128,0.5); }
+    .dot-loading { background: #FBBF24; animation: pulse-dot 1.5s infinite; }
+    .dot-error { background: #F87171; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ===== MINI CALENDAR ===== */
+    .cal-section {
+      padding: 20px 20px 6px;
+      background: var(--surface);
+    }
+    .cal-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      text-align: center;
+      margin-bottom: 14px;
+      font-family: 'Outfit', sans-serif;
+    }
+    .cal-wrap {
+      display: flex;
+      gap: 10px;
+    }
+    .cal {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .cal-header {
+      background: #1A1A1A;
+      color: #fff;
+      text-align: center;
+      padding: 9px 0 7px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+    }
+    .cal-grid { padding: 8px 6px 10px; }
+    .cal-dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 3px;
+    }
+    .cal-dow span {
+      text-align: center;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 2px 0;
+    }
+    .cal-dow span.sun { color: var(--weekend); }
+    .cal-dow span.sat { color: #4A7ECC; }
+    .cal-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1.5px;
+    }
+    .cal-day {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 0 2px;
+      border-radius: 5px;
+      position: relative;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .cal-day.empty { visibility: hidden; }
+    .cal-day.sun { color: var(--weekend); }
+    .cal-day.sat { color: #4A7ECC; }
+    .cal-day.holiday { color: var(--weekend); }
+    .cal-day.today {
+      background: var(--accent-light);
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .cal-day-num { line-height: 1; }
+    .cal-day-count {
+      font-size: 7.5px;
+      font-weight: 700;
+      line-height: 1;
+      margin-top: 1px;
+      opacity: 0.85;
+    }
+
+    /* ===== LEGEND ===== */
+    .legend {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 10px 20px 16px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .legend-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 20px;
+    }
+
+    /* ===== EVENT LIST ===== */
+    .month-label {
+      padding: 20px 24px 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .month-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .event-item {
+      display: flex;
+      padding: 16px 24px;
+      gap: 14px;
+      border-bottom: 1px solid var(--border);
+      animation: fade-up 0.4s ease both;
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .event-date {
+      width: 56px;
+      text-align: center;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .event-date-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text-primary);
+    }
+    .event-date-num.weekend { color: var(--weekend); }
+    .event-date-day {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+    }
+    .event-date-day.weekend { color: var(--weekend); }
+    .event-bar {
+      width: 3px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      align-self: stretch;
+      min-height: 36px;
+    }
+    .event-body { flex: 1; min-width: 0; }
+    .event-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+    .event-meta {
+      font-size: 12.5px;
+      color: #555;
+      line-height: 1.7;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+    }
+    .event-meta-sep {
+      display: inline;
+      margin: 0 5px;
+      color: var(--border);
+    }
+    .event-tag {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 8px;
+      margin-right: 8px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .event-desc {
+      font-size: 12.5px;
+      color: #555;
+      margin-top: 5px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .event-bottom {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .btn-attend {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .attend-count {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      background: #F5F5F3;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+    .state-box {
+      padding: 60px 24px;
+      text-align: center;
+    }
+    .state-icon { font-size: 36px; margin-bottom: 14px; }
+    .state-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .state-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+    .btn-retry {
+      margin-top: 20px;
+      padding: 10px 28px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer {
+      padding: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 400px) {
+      .cal-header { font-size: 11px; padding: 7px 0 5px; }
+      .cal-dow span { font-size: 9px; }
+      .cal-day { font-size: 10px; padding: 2px 0 1px; }
+      .cal-day-count { font-size: 7px; }
+      .cal-section { padding: 16px 14px 4px; }
+      .cal-wrap { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="header-title">CBS年間スケジュール</div>
+    <div class="header-sub" id="headerSub">
+      <span class="dot dot-loading" id="statusDot"></span>
+      <span id="statusText">読み込み中...</span>
+    </div>
+  </div>
+
+  <div class="cal-section" id="calSection" style="display:none;">
+    <div class="cal-section-title">CALENDAR</div>
+    <div class="cal-wrap" id="calWrap"></div>
+  </div>
+
+  <div class="legend" id="legend" style="display:none;"></div>
+  <hr class="legend-divider" id="legendDivider" style="display:none;">
+
+  <div id="eventList"></div>
+  <div class="footer" id="footer" style="display:none;">
+    最終更新: <span id="lastUpdate"></span>
+  </div>
+</div>
+
+<script>
+/* ★ 設定 ★ */
+var CALENDAR_ID = "b187b16f09448b8c1689a675ca840013720d7f84d04cd95f7283c017dccfcd9f@group.calendar.google.com";
+var API_KEY = "AIzaSyBTqp_EECcgi8RTekv_Wc1LY5qhg7FM1Is";
+var MONTHS_AHEAD = 12;
+
+/* ── カテゴリ色パレット ── */
+var CATEGORY_COLORS = {
+  "全員":    { bg: "#FF6B35", light: "#FFF1EB", text: "#9B3500", bar: "#FF6B35" },
+  "継続生":  { bg: "#7C4DFF", light: "#F3EEFF", text: "#4A00B0", bar: "#7C4DFF" },
+  "発揮生":  { bg: "#00B8A9", light: "#E6FAF8", text: "#006B62", bar: "#00B8A9" },
+  "軽起生":  { bg: "#F9A826", light: "#FFF8E8", text: "#9B6700", bar: "#F9A826" }
+};
+var EXTRA_COLORS = [
+  { bg: "#E84393", light: "#FDE9F3", text: "#8C1A58", bar: "#E84393" },
+  { bg: "#0984E3", light: "#E8F4FD", text: "#045694", bar: "#0984E3" },
+  { bg: "#6C5CE7", light: "#EEEAFD", text: "#3E2FA0", bar: "#6C5CE7" },
+  { bg: "#00CEC9", light: "#E5FAF9", text: "#007A77", bar: "#00CEC9" }
+];
+var extraColorIdx = 0;
+
+function getCategoryColor(cat) {
+  if (!cat) cat = "全員";
+  if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
+  var c = EXTRA_COLORS[extraColorIdx % EXTRA_COLORS.length];
+  extraColorIdx++;
+  CATEGORY_COLORS[cat] = c;
+  return c;
+}
+
+function extractTarget(ev) {
+  var desc = ev.description || "";
+  var title = ev.summary || "";
+  var m = desc.match(/【対象】\s*([^\s\n【]+)/);
+  if (m) return m[1];
+  var allCats = Object.keys(CATEGORY_COLORS);
+  for (var i = 0; i < allCats.length; i++) {
+    if (allCats[i] !== "全員" && (title.indexOf(allCats[i]) >= 0 || desc.indexOf(allCats[i]) >= 0)) {
+      return allCats[i];
+    }
+  }
+  return "全員";
+}
+
+function extractAttendCount(ev) {
+  var desc = ev.description || "";
+  var m = desc.match(/【?参加予定】?\s*[：:]?\s*(\d+)\s*人/);
+  if (m) return m[1];
+  return null;
+}
+
+/* ── 日本の祝日 2025-2027 ── */
+var HOLIDAYS = {
+  "2025-01-01":"元日","2025-01-13":"成人の日","2025-02-11":"建国記念の日","2025-02-23":"天皇誕生日","2025-02-24":"振替休日","2025-03-20":"春分の日","2025-04-29":"昭和の日","2025-05-03":"憲法記念日","2025-05-04":"みどりの日","2025-05-05":"こどもの日","2025-05-06":"振替休日","2025-07-21":"海の日","2025-08-11":"山の日","2025-09-15":"敬老の日","2025-09-23":"秋分の日","2025-10-13":"スポーツの日","2025-11-03":"文化の日","2025-11-23":"勤労感謝の日","2025-11-24":"振替休日",
+  "2026-01-01":"元日","2026-01-12":"成人の日","2026-02-11":"建国記念の日","2026-02-23":"天皇誕生日","2026-03-20":"春分の日","2026-04-29":"昭和の日","2026-05-03":"憲法記念日","2026-05-04":"みどりの日","2026-05-05":"こどもの日","2026-05-06":"振替休日","2026-07-20":"海の日","2026-08-11":"山の日","2026-09-21":"敬老の日","2026-09-22":"国民の休日","2026-09-23":"秋分の日","2026-10-12":"スポーツの日","2026-11-03":"文化の日","2026-11-23":"勤労感謝の日",
+  "2027-01-01":"元日","2027-01-11":"成人の日","2027-02-11":"建国記念の日","2027-02-23":"天皇誕生日","2027-03-21":"春分の日","2027-04-29":"昭和の日","2027-05-03":"憲法記念日","2027-05-04":"みどりの日","2027-05-05":"こどもの日","2027-07-19":"海の日","2027-08-11":"山の日","2027-09-20":"敬老の日","2027-09-23":"秋分の日","2027-10-11":"スポーツの日","2027-11-03":"文化の日","2027-11-23":"勤労感謝の日"
+};
+
+function getHoliday(date) {
+  var y = date.getFullYear();
+  var m = String(date.getMonth()+1).padStart(2,"0");
+  var d = String(date.getDate()).padStart(2,"0");
+  return HOLIDAYS[y+"-"+m+"-"+d] || null;
+}
+function isRedDay(date) {
+  var dow = date.getDay();
+  return dow === 0 || dow === 6 || !!getHoliday(date);
+}
+
+var WEEKDAYS = ["日","月","火","水","木","金","土"];
+
+function parseDate(ev) {
+  if (ev.start.dateTime) return new Date(ev.start.dateTime);
+  var p = ev.start.date.split("-");
+  return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+}
+function parseEndDate(ev) {
+  if (ev.end && ev.end.dateTime) return new Date(ev.end.dateTime);
+  if (ev.end && ev.end.date) {
+    var p = ev.end.date.split("-");
+    return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+  }
+  return null;
+}
+/* 複数日イベントの全日付キーを返す */
+function getEventDateKeys(ev) {
+  var sd = parseDate(ev);
+  var ed = parseEndDate(ev);
+  var keys = [];
+  if (!ed) {
+    keys.push(fmtDateKey(sd));
+    return keys;
+  }
+  var cur = new Date(sd);
+  /* end.dateは終日イベントの場合「翌日」なので < で比較 */
+  while (cur < ed) {
+    keys.push(fmtDateKey(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (keys.length === 0) keys.push(fmtDateKey(sd));
+  return keys;
+}
+function fmtDateKey(d) {
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function fmtTime(iso) {
+  if (!iso || iso.length <= 10) return null;
+  var d = new Date(iso);
+  return d.getHours() + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function timeRange(ev) {
+  if (!ev.start.dateTime) {
+    if (ev.end && ev.end.date && ev.start.date !== ev.end.date) {
+      var sp = ev.start.date.split("-"), ep = ev.end.date.split("-");
+      var sd = new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
+      var ed = new Date(parseInt(ep[0]),parseInt(ep[1])-1,parseInt(ep[2]));
+      var days = Math.round((ed-sd)/86400000);
+      if (days >= 2) {
+        /* Google APIのend.dateは最終日の翌日なので-1日 */
+        var lastDay = new Date(ed); lastDay.setDate(lastDay.getDate()-1);
+        return (sd.getMonth()+1)+"/"+sd.getDate()+"〜"+(lastDay.getMonth()+1)+"/"+lastDay.getDate()+"（"+days+"日間）";
+      } else if (days === 1) {
+        /* 1泊2日的な登録: start=23, end=24 → 実質2日 */
+        return (sd.getMonth()+1)+"/"+sd.getDate()+"〜"+(sd.getMonth()+1)+"/"+(sd.getDate()+days);
+      }
+    }
+    return "";
+  }
+  return fmtTime(ev.start.dateTime) + "〜" + fmtTime(ev.end.dateTime);
+}
+function extractTime(ev) {
+  var desc = ev.description || "";
+  var match = desc.match(/(?:【開始時間】|開始\s*)(\d{1,2})[:\uff1a](\d{2})/);
+  if (match) return parseInt(match[1])*60+parseInt(match[2]);
+  if (ev.start.dateTime) { var d = new Date(ev.start.dateTime); return d.getHours()*60+d.getMinutes(); }
+  return 9999;
+}
+function escHtml(s) {
+  var div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+/* ── Status ── */
+function setStatus(type, text) {
+  var sub = document.getElementById("headerSub");
+  if (type === "live") { sub.style.display = "none"; }
+  else {
+    sub.style.display = "";
+    document.getElementById("statusDot").className = "dot dot-"+type;
+    document.getElementById("statusText").textContent = text;
+  }
+}
+
+/* ── Mini Calendar ── */
+function renderCalendars(items) {
+  var now = new Date();
+  var m1 = { y: now.getFullYear(), m: now.getMonth() };
+  var nm = now.getMonth()+1, ny = now.getFullYear();
+  if (nm > 11) { nm = 0; ny++; }
+  var m2 = { y: ny, m: nm };
+
+  var countMap = {};
+  var colorMap = {};
+  for (var i = 0; i < items.length; i++) {
+    var keys = getEventDateKeys(items[i]);
+    var cat = extractTarget(items[i]);
+    for (var k = 0; k < keys.length; k++) {
+      var key = keys[k];
+      if (!countMap[key]) countMap[key] = 0;
+      countMap[key]++;
+      if (!colorMap[key]) colorMap[key] = cat;
+    }
+  }
+
+  var wrap = document.getElementById("calWrap");
+  wrap.innerHTML = buildCalMonth(m1.y, m1.m, countMap, colorMap, now)
+                 + buildCalMonth(m2.y, m2.m, countMap, colorMap, now);
+  document.getElementById("calSection").style.display = "";
+}
+
+function buildCalMonth(year, month, countMap, colorMap, now) {
+  var firstDay = new Date(year, month, 1).getDay();
+  var daysInMonth = new Date(year, month+1, 0).getDate();
+  var todayKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+
+  var h = '<div class="cal"><div class="cal-header">'+year+'年 '+(month+1)+'月</div><div class="cal-grid">';
+  h += '<div class="cal-dow">';
+  var dows = ["日","月","火","水","木","金","土"];
+  for (var i = 0; i < 7; i++) {
+    var cls = i===0?' class="sun"':(i===6?' class="sat"':'');
+    h += '<span'+cls+'>'+dows[i]+'</span>';
+  }
+  h += '</div><div class="cal-days">';
+  for (var e = 0; e < firstDay; e++) h += '<div class="cal-day empty">-</div>';
+
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateObj = new Date(year, month, d);
+    var dow = dateObj.getDay();
+    var holiday = getHoliday(dateObj);
+    var key = year+"-"+String(month+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+
+    var cls = "cal-day";
+    if (dow === 0 || holiday) cls += " sun";
+    else if (dow === 6) cls += " sat";
+    if (holiday) cls += " holiday";
+    if (key === todayKey) cls += " today";
+
+    var count = countMap[key] || 0;
+    if (count > 0) {
+      var catColor = getCategoryColor(colorMap[key]);
+      h += '<div class="'+cls+'" style="background:'+catColor.bg+';color:#fff !important;border-radius:5px;">';
+      h += '<div class="cal-day-num">'+d+'</div>';
+      if (count >= 2) {
+        h += '<div class="cal-day-count">'+count+'件</div>';
+      }
+      h += '</div>';
+    } else {
+      h += '<div class="'+cls+'">'+d+'</div>';
+    }
+  }
+  h += '</div></div></div>';
+  return h;
+}
+
+/* ── Legend ── */
+function renderLegend(items) {
+  var seen = {}, cats = [];
+  for (var i = 0; i < items.length; i++) {
+    var cat = extractTarget(items[i]);
+    if (!seen[cat]) { seen[cat] = true; cats.push(cat); }
+  }
+  if (cats.length === 0) return;
+  var el = document.getElementById("legend");
+  var h = "";
+  for (var i = 0; i < cats.length; i++) {
+    var c = getCategoryColor(cats[i]);
+    h += '<div class="legend-item"><span class="legend-dot" style="background:'+c.bg+'"></span><span>'+escHtml(cats[i])+'</span></div>';
+  }
+  el.innerHTML = h;
+  el.style.display = "";
+  document.getElementById("legendDivider").style.display = "";
+}
+
+/* ── Render Events ── */
+function renderEvents(items) {
+  var list = document.getElementById("eventList");
+  var footer = document.getElementById("footer");
+
+  if (!items || !items.length) {
+    list.innerHTML = '<div class="state-box"><div class="state-icon">📅</div>'
+      +'<div class="state-title">予定はまだありません</div>'
+      +'<div class="state-text">新しいイベントが登録されると\nここに自動で表示されます</div></div>';
+    return;
+  }
+
+  items.sort(function(a,b) {
+    var dd = parseDate(a)-parseDate(b);
+    if (dd !== 0) return dd;
+    return extractTime(a)-extractTime(b);
+  });
+
+  renderCalendars(items);
+  renderLegend(items);
+
+  var html = "";
+  var currentMonth = -1;
+
+  for (var i = 0; i < items.length; i++) {
+    var ev = items[i];
+    var d = parseDate(ev);
+    var month = d.getMonth()+1;
+    var day = d.getDate();
+    var dow = d.getDay();
+    var holiday = getHoliday(d);
+    var red = isRedDay(d);
+    var delay = (i*0.06).toFixed(2);
+    var cat = extractTarget(ev);
+    var catColor = getCategoryColor(cat);
+
+    if (month !== currentMonth) {
+      currentMonth = month;
+      html += '<div class="month-label">'+month+'月</div>';
+    }
+
+    html += '<div class="event-item" style="animation-delay:'+delay+'s">';
+    html += '<div class="event-date">';
+    html += '<div class="event-date-num'+(red?' weekend':'')+'">'+day+'</div>';
+    html += '<div class="event-date-day'+(red?' weekend':'')+'">'+(holiday||WEEKDAYS[dow])+'</div>';
+    html += '</div>';
+    html += '<div class="event-bar" style="background:'+catColor.bar+'"></div>';
+    html += '<div class="event-body">';
+    html += '<div class="event-title">'+escHtml(ev.summary||"（タイトルなし）")+'</div>';
+
+    html += '<span class="event-tag" style="background:'+catColor.light+';color:'+catColor.text+';">'+escHtml(cat)+'</span>';
+
+    var time = timeRange(ev);
+    var desc = ev.description || "";
+    /* 終日イベントで時間がない場合、descriptionから開始時間を抽出 */
+    if (!time) {
+      var timeMatch = desc.match(/(?:【開始時間】|開始\s*)(\d{1,2})[:\uff1a](\d{2})/);
+      if (timeMatch) time = timeMatch[1] + ':' + timeMatch[2] + '〜';
+    }
+    var loc = ev.location || "";
+    var metaParts = [];
+    if (time) metaParts.push(time);
+    if (loc) metaParts.push(escHtml(loc));
+    if (metaParts.length > 0) {
+      html += '<div class="event-meta">'+metaParts.join(' / ')+'</div>';
+    }
+
+    var chouseiMatch = desc.match(/https?:\/\/chouseisan\.com\S+/);
+    var cleanDesc = desc
+      .replace(/【調整さん】.*\n?/g,"")
+      .replace(/【対象】[^\n]*/g,"")
+      .replace(/【開始時間】[^\n]*/g,"")
+      .replace(/開始\s*\d{1,2}[:\uff1a]\d{2}[^\n]*/g,"")
+      .replace(/【参加予定】[^\n]*/g,"")
+      .replace(/参加予定[：:]\s*\d+\s*人/g,"")
+      .replace(/https?:\/\/chouseisan\.com\S+/g,"")
+      .replace(/---/g,"")
+      .trim();
+    var descLines = cleanDesc.split("\n").filter(function(l){ return l.trim()!==""; });
+    if (descLines.length > 0) {
+      html += '<div class="event-desc">'+escHtml(descLines.join(" / "))+'</div>';
+    }
+
+    var attendCount = extractAttendCount(ev);
+    if (chouseiMatch || attendCount) {
+      html += '<div class="event-bottom">';
+      if (chouseiMatch) {
+        html += '<a href="'+escHtml(chouseiMatch[0])+'" target="_blank" rel="noopener" class="btn-attend" style="background:'+catColor.bar+';">出欠はこちら</a>';
+      }
+      if (attendCount) {
+        html += '<span class="attend-count">参加予定：'+escHtml(attendCount)+'人</span>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+  }
+
+  list.innerHTML = html;
+  footer.style.display = "block";
+  var now = new Date();
+  document.getElementById("lastUpdate").textContent = (now.getMonth()+1)+"/"+now.getDate()+" "+now.getHours()+":"+String(now.getMinutes()).padStart(2,"0");
+}
+
+/* ── Fetch & Init ── */
+function init() {
+  var list = document.getElementById("eventList");
+  list.innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-text">スケジュールを取得中...</div></div>';
+  setStatus("loading","読み込み中...");
+
+  var now = new Date();
+  var future = new Date(now.getTime());
+  future.setMonth(future.getMonth()+MONTHS_AHEAD);
+
+  var url = "https://www.googleapis.com/calendar/v3/calendars/"
+    +encodeURIComponent(CALENDAR_ID)
+    +"/events?key="+encodeURIComponent(API_KEY)
+    +"&timeMin="+encodeURIComponent(now.toISOString())
+    +"&timeMax="+encodeURIComponent(future.toISOString())
+    +"&singleEvents=true&orderBy=startTime&maxResults=50";
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET",url,true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState !== 4) return;
+    if (xhr.status === 200) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var events = (data.items||[]).filter(function(item){ return item.start; });
+        setStatus("live","");
+        renderEvents(events);
+      } catch(e) {
+        setStatus("error","データ解析エラー");
+        list.innerHTML = '<div class="state-box"><div class="state-icon">⚠️</div>'
+          +'<div class="state-title">データの解析に失敗しました</div>'
+          +'<div class="state-text">'+escHtml(String(e))+'</div>'
+          +'<button class="btn-retry" onclick="init()">再読み込み</button></div>';
+      }
+    } else {
+      var errMsg = "ステータス: "+xhr.status;
+      try { var ed=JSON.parse(xhr.responseText); if(ed.error&&ed.error.message) errMsg=ed.error.message; } catch(e){}
+      setStatus("error","接続エラー");
+      list.innerHTML = '<div class="state-box"><div class="state-icon">⚠️</div>'
+        +'<div class="state-title">読み込みに失敗しました</div>'
+        +'<div class="state-text">'+escHtml(errMsg)+'</div>'
+        +'<button class="btn-retry" onclick="init()">再読み込み</button></div>';
+    }
+  };
+  xhr.onerror = function() {
+    setStatus("error","ネットワークエラー");
+    list.innerHTML = '<div class="state-box"><div class="state-icon">⚠️</div>'
+      +'<div class="state-title">ネットワークエラー</div>'
+      +'<div class="state-text">インターネット接続を確認してください</div>'
+      +'<button class="btn-retry" onclick="init()">再読み込み</button></div>';
+  };
+  xhr.send();
+}
+
+init();
+</script>
+</body>
+</html>
